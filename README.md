@@ -1,17 +1,17 @@
 # 🔴 Red Team Agent v2.0
 
-Automated web application red teaming platform dengan headless browser, 10-phase security testing, smart learning engine, dan PDF reporting. Ditulis dalam **Go**.
+Automated web application red teaming platform with a headless browser, 10-phase security testing, a smart learning engine, and PDF reporting. Written in **Go**.
 
 ---
 
-## 📋 Daftar Isi
+## 📋 Table of Contents
 
 - [Quick Start](#-quick-start)
-- [Arsitektur](#-arsitektur)
-- [Cara Menjalankan](#-cara-menjalankan)
-- [Konfigurasi](#-konfigurasi)
-- [Setup Autentikasi (Login / Token)](#-cara-setup-autentikasi-login--token)
-- [10-Phase Testing — Detail Teknik](#-10-phase-testing--detail-teknik)
+- [Architecture](#-architecture)
+- [How to Run](#-how-to-run)
+- [Configuration](#-configuration)
+- [Authentication Setup (Login / Token)](#-authentication-setup-login--token)
+- [10-Phase Testing — Technique Details](#-10-phase-testing--technique-details)
   - [Phase 1: Reconnaissance](#phase-1-reconnaissance)
   - [Phase 2: Discovery](#phase-2-discovery)
   - [Phase 3: Authentication](#phase-3-authentication)
@@ -24,7 +24,7 @@ Automated web application red teaming platform dengan headless browser, 10-phase
   - [Phase 10: Fuzzing Stress](#phase-10-fuzzing-stress)
 - [Learning Engine](#-learning-engine)
 - [API Endpoints](#-api-endpoints)
-- [Dashboard Web](#-dashboard-web)
+- [Web Dashboard](#-web-dashboard)
 - [Project Structure](#-project-structure)
 - [Cross-Compilation](#-cross-compilation)
 - [Docker](#-docker)
@@ -35,24 +35,24 @@ Automated web application red teaming platform dengan headless browser, 10-phase
 ## 🚀 Quick Start
 
 ```bash
-# Clone dan masuk direktori
+# Clone and enter the directory
 cd red-team-agent
 
-# Build binary
+# Build the binary
 make build
 
-# Jalankan dengan config default
+# Run with the default config
 ./red-team-agent --config config.json --data data
 
-# Atau development mode (tanpa build)
+# Or development mode (no build)
 make dev
 ```
 
-Dashboard bisa diakses di: **http://localhost:5555**
+The dashboard is available at: **http://localhost:5555**
 
 ---
 
-## 🏗 Arsitektur
+## 🏗 Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -80,48 +80,48 @@ Dashboard bisa diakses di: **http://localhost:5555**
 └──────────────────────────────────────────────────────────────┘
 ```
 
-**Agent Loop** berjalan secara continuous:
-1. **Plan** — Bikin rencana scan berdasarkan knowledge base
-2. **Scan** — Eksekusi 10 phase testing ( Recon → Discovery → Auth → Authz → Injection → Logic → Client-Side → Infra → DDoS → Fuzz)
-3. **Analyze** — Kumpulkan findings, endpoints, parameters
-4. **Learn** — Record teknik yang berhasil/gagal ke knowledge base
-5. **Report** — Generate PDF report
-6. **Repeat** — Iterasi berikutnya lebih pintar
+The **Agent Loop** runs continuously:
+1. **Plan** — Build a scan plan based on the knowledge base
+2. **Scan** — Execute the 10 testing phases (Recon → Discovery → Auth → Authz → Injection → Logic → Client-Side → Infra → DDoS → Fuzz)
+3. **Analyze** — Collect findings, endpoints, parameters
+4. **Learn** — Record successful/failed techniques into the knowledge base
+5. **Report** — Generate a PDF report
+6. **Repeat** — The next iteration is smarter
 
 ---
 
-## 🏃 Cara Menjalankan
+## 🏃 How to Run
 
-### 1. Build dari Source
+### 1. Build from Source
 
 ```bash
-# Pastikan Go 1.21+ terinstal
+# Make sure Go 1.21+ is installed
 go version
 
-# Build binary
+# Build the binary
 make build
 
-# Jalankan
+# Run
 ./red-team-agent --config config.json --data data
 ```
 
 ### 2. Development Mode
 
 ```bash
-# Langsung run tanpa build
+# Run directly without building
 make dev
 
-# Atau manual
+# Or manually
 go run ./cmd/agent/ --config config.json --data data
 ```
 
 ### 3. Docker
 
 ```bash
-# Build dan jalankan container
+# Build and run the container
 docker-compose up -d
 
-# Lihat logs
+# View logs
 docker-compose logs -f
 
 # Stop
@@ -131,19 +131,19 @@ docker-compose down
 ### 4. Custom Port/Host
 
 ```bash
-# Ganti port dan host via CLI flags
+# Change port and host via CLI flags
 ./red-team-agent --config config.json --data data --port 8080 --host 127.0.0.1
 
-# Atau edit config.json bagian "dashboard"
+# Or edit the "dashboard" section of config.json
 ```
 
 ### 5. Cross-Platform Binary
 
 ```bash
-# Build semua platform sekaligus
+# Build all platforms at once
 make build-all
 
-# Atau build per platform
+# Or build per platform
 make build-linux      # Linux AMD64
 make build-mac-intel  # macOS Intel
 make build-mac-arm    # macOS Apple Silicon
@@ -153,23 +153,23 @@ make build-windows    # Windows AMD64
 ### 6. Via API
 
 ```bash
-# Start scan untuk target tertentu
+# Start a scan for a specific target
 curl -X POST http://localhost:5555/api/scan/start \
   -H "Content-Type: application/json" \
   -d '{"target_id": "example"}'
 
-# Cek progress
+# Check progress
 curl http://localhost:5555/api/scan/progress
 
-# Download report
+# Download a report
 curl -O http://localhost:5555/api/reports/download/redteam_example_2026-06-02.pdf
 ```
 
 ---
 
-## ⚙️ Konfigurasi
+## ⚙️ Configuration
 
-Edit `config.json` atau pakai dashboard web:
+Edit `config.json` or use the web dashboard:
 
 ```json
 {
@@ -225,127 +225,127 @@ Edit `config.json` atau pakai dashboard web:
 }
 ```
 
-**Field penting:**
-| Field | Deskripsi |
-|-------|-----------|
+**Key fields:**
+| Field | Description |
+|-------|-------------|
 | `auth.method` | `none`, `form`, `token`, `basic` |
-| `scope.rate_limit_rps` | Max requests per detik (default: 5) |
+| `scope.rate_limit_rps` | Max requests per second (default: 5) |
 | `scope.timeout` | HTTP timeout per request |
-| `scope.slow_threshold_ms` | Flag response sebagai `minor` jika di atas threshold ini (default: `500` ms, set `0` untuk disable) |
+| `scope.slow_threshold_ms` | Flag a response as `minor` if it exceeds this threshold (default: `500` ms, set `0` to disable) |
 | `tests.*` | Enable/disable per phase |
-| `schedule.cron` | Cron expression untuk auto-scan |
-| `agent.proxy` | HTTP proxy (opsional) |
+| `schedule.cron` | Cron expression for auto-scan |
+| `agent.proxy` | HTTP proxy (optional) |
 
 ---
 
-## 🔍 10-Phase Testing — Detail Teknik
+## 🔍 10-Phase Testing — Technique Details
 
 ### Phase 1: Reconnaissance
 
-**Tujuan:** Mengumpulkan informasi sebanyak mungkin tentang target sebelum melakukan serangan.
+**Goal:** Gather as much information about the target as possible before launching attacks.
 
-| Teknik | Detail |
+| Technique | Detail |
 |--------|--------|
-| **HTTP Fingerprinting** | Analisis response headers (`Server`, `X-Powered-By`) untuk identifikasi web server dan teknologi |
-| **Framework Detection via Cookies** | Deteksi framework dari nama cookie: `PHPSESSID` → PHP, `JSESSIONID` → Java, `laravel_session` → Laravel, `rack.session` → Rails, `ASP.NET_SessionId` → ASP.NET |
-| **robots.txt Analysis** | Parse `robots.txt` untuk menemukan path tersembunyi (Disallow/Allow entries) |
-| **sitemap.xml Parsing** | Extract semua URL dari `sitemap.xml` |
-| **TLS/SSL Check** | Verifikasi apakah HTTPS digunakan; jika tidak → medium finding |
-| **JavaScript File Analysis** | Scan file JS umum (`/static/js/app.js`, `/js/main.js`, dll) untuk cari: API key, secret, password, token, authorization references |
-| **Error Page Analysis** | Kirim request ke page yang tidak ada, cek apakah error page membocorkan info: stack trace, exception, debug mode, server software (Apache/Nginx/IIS) |
+| **HTTP Fingerprinting** | Analyze response headers (`Server`, `X-Powered-By`) to identify the web server and technologies |
+| **Framework Detection via Cookies** | Detect the framework from cookie names: `PHPSESSID` → PHP, `JSESSIONID` → Java, `laravel_session` → Laravel, `rack.session` → Rails, `ASP.NET_SessionId` → ASP.NET |
+| **robots.txt Analysis** | Parse `robots.txt` to find hidden paths (Disallow/Allow entries) |
+| **sitemap.xml Parsing** | Extract all URLs from `sitemap.xml` |
+| **TLS/SSL Check** | Verify whether HTTPS is used; if not → medium finding |
+| **JavaScript File Analysis** | Scan common JS files (`/static/js/app.js`, `/js/main.js`, etc.) for: API keys, secrets, passwords, tokens, authorization references |
+| **Error Page Analysis** | Send a request to a non-existent page and check whether the error page leaks info: stack trace, exception, debug mode, server software (Apache/Nginx/IIS) |
 
 **Key Findings:**
 - `info-disclosure` — Sensitive data in JS files
 - `info-disclosure` — Tech stack leaked in error pages
-- `No TLS` — Target tanpa HTTPS
+- `No TLS` — Target without HTTPS
 
 ---
 
 ### Phase 2: Discovery
 
-**Tujuan:** Menemukan endpoint, parameter, dan entry point serangan sebanyak mungkin.
+**Goal:** Find as many endpoints, parameters, and attack entry points as possible.
 
-| Teknik | Detail |
+| Technique | Detail |
 |--------|--------|
-| **Directory/File Brute Force** | Cek 50+ path umum: `/admin`, `/.env`, `/.git/config`, `/swagger.json`, `/phpmyadmin`, `/backup.sql`, dll. Flag severity berdasarkan sensitivitas |
-| **API Endpoint Discovery** | Scan pola API: `/api`, `/api/v1`, `/api/v2`, `/rest`, `/graphql` |
-| **Deep REST API Discovery** | Test 70+ REST API patterns: `/api/v1/users`, `/api/v1/posts`, `/api/v1/admin`, termasuk auth endpoints dan OAuth paths |
-| **Parameter Discovery** | Identifikasi parameter query umum: `id`, `page`, `search`, `file`, `path`, `url`, `redirect`, `callback`, dll |
-| **Source Code Comment Analysis** | Parse HTML comments, cari keyword sensitif: `password`, `secret`, `api`, `key`, `token`, `admin`, `debug`, `todo`, `fixme`, `hack`, `temp` |
-| **HTTP Method Fuzzing** | Test GET, POST, PUT, DELETE, PATCH, OPTIONS pada discovered endpoints. Cek `Allow` header dari OPTIONS |
-| **JavaScript Endpoint Extraction** | Parse `<script>` tags, fetch JS files, extract endpoint dari: `fetch()`, `axios.get/post()`, `XMLHttpRequest`, string URL patterns |
-| **Form Discovery** | Parse HTML forms, extract: action URL, method, input fields (termasuk textarea dan select). Deteksi **missing CSRF token** pada POST forms |
-| **GraphQL Introspection** | Kirim introspection query ke `/graphql`, `/graphiql`, `/api/graphql`, `/query`, `/v1/graphql`. Jika `__schema` terexpose → finding |
+| **Directory/File Brute Force** | Check 50+ common paths: `/admin`, `/.env`, `/.git/config`, `/swagger.json`, `/phpmyadmin`, `/backup.sql`, etc. Flag severity based on sensitivity |
+| **API Endpoint Discovery** | Scan API patterns: `/api`, `/api/v1`, `/api/v2`, `/rest`, `/graphql` |
+| **Deep REST API Discovery** | Test 70+ REST API patterns: `/api/v1/users`, `/api/v1/posts`, `/api/v1/admin`, including auth endpoints and OAuth paths |
+| **Parameter Discovery** | Identify common query parameters: `id`, `page`, `search`, `file`, `path`, `url`, `redirect`, `callback`, etc. |
+| **Source Code Comment Analysis** | Parse HTML comments, looking for sensitive keywords: `password`, `secret`, `api`, `key`, `token`, `admin`, `debug`, `todo`, `fixme`, `hack`, `temp` |
+| **HTTP Method Fuzzing** | Test GET, POST, PUT, DELETE, PATCH, OPTIONS on discovered endpoints. Check the `Allow` header from OPTIONS |
+| **JavaScript Endpoint Extraction** | Parse `<script>` tags, fetch JS files, extract endpoints from: `fetch()`, `axios.get/post()`, `XMLHttpRequest`, URL string patterns |
+| **Form Discovery** | Parse HTML forms, extract: action URL, method, input fields (including textarea and select). Detect **missing CSRF token** on POST forms |
+| **GraphQL Introspection** | Send an introspection query to `/graphql`, `/graphiql`, `/api/graphql`, `/query`, `/v1/graphql`. If `__schema` is exposed → finding |
 
 **Key Findings:**
-- `sensitive-file` — File sensitif bisa diakses publik
+- `sensitive-file` — Sensitive file publicly accessible
 - `api-docs` — Swagger/OpenAPI documentation exposed
-- `http-methods` — Terlalu banyak HTTP methods diterima
-- `csrf-missing` — POST form tanpa CSRF token
-- `graphql-introspection` — GraphQL schema terbuka
+- `http-methods` — Too many HTTP methods accepted
+- `csrf-missing` — POST form without a CSRF token
+- `graphql-introspection` — GraphQL schema exposed
 
 ---
 
 ### Phase 3: Authentication
 
-**Tujuan:** Menguji keamanan mekanisme authentication.
+**Goal:** Test the security of the authentication mechanism.
 
-| Teknik | Detail |
+| Technique | Detail |
 |--------|--------|
-| **Default Credential Testing** | Coba 14 kombinasi credential umum: `admin/admin`, `admin/password`, `root/root`, `admin/123456`, `guest/guest`, dll |
-| **Login Bypass via SQLi** | 7 payload bypass: `admin'--`, `admin' OR '1'='1`, `' OR 1=1--`, `admin%00` (null byte), `admin\` (backslash), empty password |
-| **JWT alg:none Attack** | Kirim JWT dengan algorithm `none` dan body `{"sub":"1","role":"admin"}` ke authenticated endpoints. Jika diterima → critical |
-| **Password Reset User Enumeration** | Test reset password endpoints (`/forgot-password`, `/api/auth/forgot`), cek apakah response membocorkan apakah email ada atau tidak |
-| **Session Fixation** | Set cookie `session=<fixed>` sebelum login, cek apakah session ID diganti setelah login berhasil |
+| **Default Credential Testing** | Try 14 common credential combinations: `admin/admin`, `admin/password`, `root/root`, `admin/123456`, `guest/guest`, etc. |
+| **Login Bypass via SQLi** | 7 bypass payloads: `admin'--`, `admin' OR '1'='1`, `' OR 1=1--`, `admin%00` (null byte), `admin\` (backslash), empty password |
+| **JWT alg:none Attack** | Send a JWT with algorithm `none` and body `{"sub":"1","role":"admin"}` to authenticated endpoints. If accepted → critical |
+| **Password Reset User Enumeration** | Test password reset endpoints (`/forgot-password`, `/api/auth/forgot`), checking whether the response leaks whether an email exists |
+| **Session Fixation** | Set cookie `session=<fixed>` before login and check whether the session ID is rotated after a successful login |
 
 **Key Findings:**
-- `default-credentials` (Critical) — Default password masih berlaku
-- `auth-bypass` (Critical) — Login bisa di-bypass via SQLi
-- `jwt-alg-none` (Critical) — Server menerima JWT tanpa signature
-- `user-enumeration` (Medium) — Password reset bocor info user
-- `session-fixation` (High) — Session ID tidak diperbarui pasca-login
+- `default-credentials` (Critical) — Default password still valid
+- `auth-bypass` (Critical) — Login can be bypassed via SQLi
+- `jwt-alg-none` (Critical) — Server accepts JWT without a signature
+- `user-enumeration` (Medium) — Password reset leaks user info
+- `session-fixation` (High) — Session ID not rotated after login
 
 ---
 
 ### Phase 4: Authorization
 
-**Tujuan:** Menguji apakah access control diimplementasi dengan benar.
+**Goal:** Test whether access control is implemented correctly.
 
-| Teknik | Detail |
+| Technique | Detail |
 |--------|--------|
-| **Privilege Escalation** | Akses admin paths (`/admin`, `/admin/users`, `/api/admin`) tanpa authentication |
-| **IDOR (Insecure Direct Object Reference)** | Test sequential IDs (`/api/users/1`, `/api/orders/1`) tanpa auth. Cek apakah response mengandung user data (email, name, password). Juga test dari knowledge base endpoints |
-| **Missing Function-Level Access Control** | Kirim GET, POST, PUT, DELETE, PATCH ke sensitive endpoints (`/api/users`, `/api/config`) tanpa auth |
-| **API Authorization Bypass via Headers** | 7 bypass teknik: `X-Forwarded-For: 127.0.0.1`, `X-Original-URL: /admin`, `X-Rewrite-URL: /admin`, `X-Custom-IP-Authorization: 127.0.0.1`, `X-Real-IP: 127.0.0.1`, `Content-Type: application/json`, `X-HTTP-Method-Override: GET` |
+| **Privilege Escalation** | Access admin paths (`/admin`, `/admin/users`, `/api/admin`) without authentication |
+| **IDOR (Insecure Direct Object Reference)** | Test sequential IDs (`/api/users/1`, `/api/orders/1`) without auth. Check whether the response contains user data (email, name, password). Also test endpoints from the knowledge base |
+| **Missing Function-Level Access Control** | Send GET, POST, PUT, DELETE, PATCH to sensitive endpoints (`/api/users`, `/api/config`) without auth |
+| **API Authorization Bypass via Headers** | 7 bypass techniques: `X-Forwarded-For: 127.0.0.1`, `X-Original-URL: /admin`, `X-Rewrite-URL: /admin`, `X-Custom-IP-Authorization: 127.0.0.1`, `X-Real-IP: 127.0.0.1`, `Content-Type: application/json`, `X-HTTP-Method-Override: GET` |
 
 **Key Findings:**
-- `privilege-escalation` (High) — Admin path bisa diakses tanpa auth
-- `idor` (High) — Data user lain bisa diakses via sequential ID
-- `missing-access-control` (High) — HTTP method sensitif diterima tanpa auth
+- `privilege-escalation` (High) — Admin path accessible without auth
+- `idor` (High) — Other users' data accessible via sequential ID
+- `missing-access-control` (High) — Sensitive HTTP method accepted without auth
 - `authz-bypass` (High) — Bypass via spoofed headers
 
 ---
 
 ### Phase 5: Injection
 
-**Tujuan:** Menguji semua jenis injection attack pada setiap parameter dan endpoint yang ditemukan.
+**Goal:** Test every kind of injection attack against every discovered parameter and endpoint.
 
 #### SQL Injection (6 Variants)
 
-| Tipe | Payload Contoh | Deteksi |
+| Type | Example Payload | Detection |
 |------|---------------|---------|
 | **Error-based** | `'`, `"`, `' OR '1'='1`, `' UNION SELECT NULL--` | SQL error patterns: `SQL syntax`, `mysql_fetch`, `ORA-01756`, `SQLSTATE`, `sqlite_` |
 | **MySQL-specific** | `' AND EXTRACTVALUE(1,CONCAT(0x7e,VERSION()))--` | MySQL error |
 | **PostgreSQL-specific** | `' AND 1=CAST((SELECT version()) AS INT)--` | PG error |
-| **Time-based** | `' AND SLEEP(5)--`, `1; WAITFOR DELAY '0:0:5'--` | Response > 4 detik |
+| **Time-based** | `' AND SLEEP(5)--`, `1; WAITFOR DELAY '0:0:5'--` | Response > 4 seconds |
 | **Stacked Queries** | `'; SELECT SLEEP(5)--`, `'; WAITFOR DELAY '0:0:5'--` | Delay detected |
 | **Boolean Blind** | `' AND 1=1--` vs `' AND 1=2--` | Response difference |
 
-**21 SQL error patterns** dideteksi: `SQL syntax`, `mysql_fetch`, `ORA-01756`, `SQLSTATE`, `sqlite_`, `unclosed quotation mark`, dll.
+**21 SQL error patterns** are detected: `SQL syntax`, `mysql_fetch`, `ORA-01756`, `SQLSTATE`, `sqlite_`, `unclosed quotation mark`, etc.
 
 #### XSS (Cross-Site Scripting)
 
-| Tipe | Payload Contoh |
+| Type | Example Payload |
 |------|---------------|
 | **Basic** | `<script>alert(1)</script>`, `<img src=x onerror=alert(1)>`, `<svg onload=alert(1)>` |
 | **Filter Bypass** | `<SCRIPT>`, `<ScRiPt>`, `<scr<script>ipt>`, `<svg/onload=alert(1)>` |
@@ -355,11 +355,11 @@ Edit `config.json` atau pakai dashboard web:
 | **DOM-based** | `#<img src=x onerror=alert(1)>`, `javascript:void(alert(1))` |
 | **Template Literal** | `${alert(1)}`, `{{constructor.constructor('return alert(1)')()}}` |
 
-Deteksi: Payload reflected di response body.
+Detection: Payload reflected in the response body.
 
 #### Command Injection
 
-| Tipe | Payload Contoh |
+| Type | Example Payload |
 |------|---------------|
 | **Unix** | `; id`, `\| id`, `` `id` ``, `$(id)`, `; cat /etc/passwd` |
 | **Windows** | `& dir`, `\| dir`, `&& type C:\boot.ini` |
@@ -367,7 +367,7 @@ Deteksi: Payload reflected di response body.
 | **Encoding Bypass** | `%3bid`, `%7cid` |
 | **Direct Path** | `;/bin/id`, `` `/bin/id` ``, `$(/bin/id)` |
 
-Deteksi: Output patterns — `uid=`, `gid=`, `root:`, `drwx`, `total `, `/bin/sh`.
+Detection: Output patterns — `uid=`, `gid=`, `root:`, `drwx`, `total `, `/bin/sh`.
 
 #### SSTI (Server-Side Template Injection)
 
@@ -384,7 +384,7 @@ Deteksi: Output patterns — `uid=`, `gid=`, `root:`, `drwx`, `total `, `/bin/sh
 
 Payload: `*)(|(cn=*`, `admin)(&))`, `*)(objectClass=*`, `admin*)((|userPassword=*)`
 
-Deteksi: Response mengandung `ldap`, `dn=`, `dc=`, `ou=`, `invalid dn`.
+Detection: Response contains `ldap`, `dn=`, `dc=`, `ou=`, `invalid dn`.
 
 #### XXE (XML External Entity)
 
@@ -396,17 +396,17 @@ Deteksi: Response mengandung `ldap`, `dn=`, `dc=`, `ou=`, `invalid dn`.
 
 5 XXE payload variants: file read (`/etc/passwd`, `C:\boot.ini`), SSRF via XXE, DTD-based.
 
-Deteksi: Response mengandung `root:`, `/etc/passwd`, `<?xml`, `<!entity`.
+Detection: Response contains `root:`, `/etc/passwd`, `<?xml`, `<!entity`.
 
 #### CRLF Injection
 
 Payload: `%0d%0aSet-Cookie:%20evil=injected`, `%0d%0aLocation:%20https://evil.com`
 
-Deteksi: Injected header muncul di response.
+Detection: The injected header appears in the response.
 
 #### SSRF (Server-Side Request Forgery)
 
-| Kategori | Payload |
+| Category | Payload |
 |----------|---------|
 | **Internal IPs** | `http://127.0.0.1`, `http://localhost:22/80/443/3306/6379/27017`, `http://[::1]`, `http://0.0.0.0` |
 | **IP Encoding Bypass** | `http://0x7f000001`, `http://0177.0.0.1`, `http://2130706433` |
@@ -417,7 +417,7 @@ Deteksi: Injected header muncul di response.
 | **File Protocol** | `file:///etc/passwd`, `file:///proc/self/environ` |
 | **Gopher/Dict** | `gopher://127.0.0.1:6379/`, `dict://127.0.0.1:6379/INFO` |
 
-Deteksi: Response mengandung `ami-id`, `instance-id`, `root:`, `<ListAllMyBucketsResult>`.
+Detection: Response contains `ami-id`, `instance-id`, `root:`, `<ListAllMyBucketsResult>`.
 
 #### Prototype Pollution
 
@@ -430,15 +430,15 @@ Deteksi: Response mengandung `ami-id`, `instance-id`, `root:`, `<ListAllMyBucket
 
 Payload: `evil.com`, `localhost`, `127.0.0.1`, `attacker.com`, `original-host.com\r\nX-Injected: true`
 
-Cek: Reflected host in response, dan **password reset poisoning** via Host header.
+Check: Reflected host in the response, and **password reset poisoning** via the Host header.
 
 #### HTTP Method Tampering
 
-Test header `X-HTTP-Method-Override`, `X-Method-Override`, `X-HTTP-Method`, `_method` pada protected endpoints. Jika normal request → 401/403 tapi override → 200 → bypass.
+Test the headers `X-HTTP-Method-Override`, `X-Method-Override`, `X-HTTP-Method`, `_method` on protected endpoints. If a normal request → 401/403 but the override → 200 → bypass.
 
 #### Multi-Method Injection
 
-Test SQLi dan XSS via **POST**, **PUT**, **PATCH** dengan:
+Test SQLi and XSS via **POST**, **PUT**, **PATCH** with:
 - JSON body: `{"username": "' OR '1'='1"}`
 - Form-urlencoded body: `username=' OR '1'='1`
 
@@ -446,116 +446,116 @@ Test SQLi dan XSS via **POST**, **PUT**, **PATCH** dengan:
 
 ### Phase 6: Logic & Business Flow
 
-**Tujuan:** Menguji celah logika bisnis dan race condition.
+**Goal:** Test for business-logic flaws and race conditions.
 
-| Teknik | Detail |
+| Technique | Detail |
 |--------|--------|
-| **Rate Limit Bypass** | Kirim 20 login attempts cepat berturut-turut. Jika ≥15 berhasil tanpa block → finding |
-| **Parameter Tampering** | Test parameter: `price=0.01`, `role=admin`, `isAdmin=true`, `admin=1`, `debug=true`, `access_level=99` |
-| **Force Browsing** | Akses langsung: `/admin/delete-user`, `/admin/export`, `/api/internal`, `/api/debug`, `/actuator/shutdown` |
-| **Race Condition** | Kirim 10-20 concurrent requests ke state-changing endpoints: coupon apply, transfer, withdraw, vote, like, checkout, referral, redeem. Jika >1 berhasil → race condition |
-| **IDOR in API** | Test 17 API patterns × 6 IDs (`1`, `2`, `3`, `999`, `0`, `-1`) untuk users, orders, documents, messages |
-| **HTTP Method Bypass** | Bandingkan response 7 HTTP methods pada protected paths. Jika ada method yang bypass 401/403 → finding |
-| **Mass Assignment** | Inject extra fields di JSON body saat POST/PUT: `{"role": "admin"}`, `{"isAdmin": true}`, `{"plan": "premium"}`, `{"credit": 99999}`, `{"permissions": ["admin", "superadmin"]}` |
+| **Rate Limit Bypass** | Send 20 rapid consecutive login attempts. If ≥15 succeed without a block → finding |
+| **Parameter Tampering** | Test parameters: `price=0.01`, `role=admin`, `isAdmin=true`, `admin=1`, `debug=true`, `access_level=99` |
+| **Force Browsing** | Direct access to: `/admin/delete-user`, `/admin/export`, `/api/internal`, `/api/debug`, `/actuator/shutdown` |
+| **Race Condition** | Send 10–20 concurrent requests to state-changing endpoints: coupon apply, transfer, withdraw, vote, like, checkout, referral, redeem. If >1 succeed → race condition |
+| **IDOR in API** | Test 17 API patterns × 6 IDs (`1`, `2`, `3`, `999`, `0`, `-1`) for users, orders, documents, messages |
+| **HTTP Method Bypass** | Compare the response of 7 HTTP methods on protected paths. If any method bypasses 401/403 → finding |
+| **Mass Assignment** | Inject extra fields in the JSON body on POST/PUT: `{"role": "admin"}`, `{"isAdmin": true}`, `{"plan": "premium"}`, `{"credit": 99999}`, `{"permissions": ["admin", "superadmin"]}` |
 
 **Key Findings:**
-- `rate-limit` — Login tanpa rate limiting
-- `race-condition` — Endpoint bisa dipanggil bersamaan
-- `idor-api` — Data user lain via API
-- `mass-assignment` — Extra JSON fields diterima server
+- `rate-limit` — Login without rate limiting
+- `race-condition` — Endpoint can be called concurrently
+- `idor-api` — Other users' data via API
+- `mass-assignment` — Extra JSON fields accepted by the server
 
 ---
 
 ### Phase 7: Client-Side
 
-**Tujuan:** Menguji keamanan sisi client (browser).
+**Goal:** Test client-side (browser) security.
 
-| Teknik | Detail |
+| Technique | Detail |
 |--------|--------|
-| **CORS Misconfiguration** | Kirim OPTIONS dengan Origin: `https://evil.com`, `http://localhost`, `https://attacker.example.com`. Cek `Access-Control-Allow-Origin` dan `Access-Control-Allow-Credentials`. Jika ACAO = `*` atau = origin → finding. Jika + credentials → severity naik ke high |
-| **Clickjacking** | Cek apakah `X-Frame-Options` atau CSP `frame-ancestors` ada. Jika tidak ada → page bisa di-iframe |
-| **Open Redirect** | Test 8 redirect parameters (`redirect`, `url`, `next`, `return`, `goto`, `continue`, dll) × 3 payloads (`https://evil.com`, `//evil.com`, `/\evil.com`). Cek `Location` header |
-| **CSP Analysis** | Cek `Content-Security-Policy` header. Jika missing → finding. Jika ada tapi mengandung `'unsafe-inline'` atau `'unsafe-eval'` → weak |
-| **Client-Side Prototype Pollution** | Scan JS code untuk pattern berbahaya: deep merge tanpa `hasOwnProperty`, `_.merge`, `$.extend`, `Object.assign`, `__proto__` assignment, `constructor.prototype` |
-| **postMessage Security** | Cek `addEventListener("message", ...)` tanpa `origin` validation. Cek `postMessage(..., '*')` yang bocor data ke window manapun |
-| **DOM Clobbering** | Deteksi: `window.location` comparison, `document.getElementById` tanpa null check, `window.property` comparison |
-| **DOM Sinks** | Deteksi 16 dangerous sinks: `innerHTML`, `outerHTML`, `document.write`, `eval()`, `setTimeout(string)`, `new Function()`, `insertAdjacentHTML`, `location=`, dll |
+| **CORS Misconfiguration** | Send OPTIONS with Origin: `https://evil.com`, `http://localhost`, `https://attacker.example.com`. Check `Access-Control-Allow-Origin` and `Access-Control-Allow-Credentials`. If ACAO = `*` or = origin → finding. If + credentials → severity raised to high |
+| **Clickjacking** | Check whether `X-Frame-Options` or CSP `frame-ancestors` is present. If absent → the page can be iframed |
+| **Open Redirect** | Test 8 redirect parameters (`redirect`, `url`, `next`, `return`, `goto`, `continue`, etc.) × 3 payloads (`https://evil.com`, `//evil.com`, `/\evil.com`). Check the `Location` header |
+| **CSP Analysis** | Check the `Content-Security-Policy` header. If missing → finding. If present but containing `'unsafe-inline'` or `'unsafe-eval'` → weak |
+| **Client-Side Prototype Pollution** | Scan JS code for dangerous patterns: deep merge without `hasOwnProperty`, `_.merge`, `$.extend`, `Object.assign`, `__proto__` assignment, `constructor.prototype` |
+| **postMessage Security** | Check `addEventListener("message", ...)` without `origin` validation. Check `postMessage(..., '*')` that leaks data to any window |
+| **DOM Clobbering** | Detect: `window.location` comparison, `document.getElementById` without a null check, `window.property` comparison |
+| **DOM Sinks** | Detect 16 dangerous sinks: `innerHTML`, `outerHTML`, `document.write`, `eval()`, `setTimeout(string)`, `new Function()`, `insertAdjacentHTML`, `location=`, etc. |
 
 ---
 
 ### Phase 8: Infrastructure
 
-**Tujuan:** Menguji keamanan infrastruktur server.
+**Goal:** Test server infrastructure security.
 
-| Teknik | Detail |
+| Technique | Detail |
 |--------|--------|
-| **Security Headers Audit** | Cek 6 headers: `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Strict-Transport-Security`, `Referrer-Policy`, `Permissions-Policy`. Missing ≥4 → medium |
-| **Cookie Security** | Audit session cookies untuk: `HttpOnly`, `Secure`, `SameSite` flags |
-| **Information Disclosure** | Scan 20+ sensitive paths: `/.env`, `/.git/config`, `/.htaccess`, `/server-status`, `/phpinfo.php`, `/actuator/env`, `/swagger.json`, `/.DS_Store`, dll |
+| **Security Headers Audit** | Check 6 headers: `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Strict-Transport-Security`, `Referrer-Policy`, `Permissions-Policy`. Missing ≥4 → medium |
+| **Cookie Security** | Audit session cookies for: `HttpOnly`, `Secure`, `SameSite` flags |
+| **Information Disclosure** | Scan 20+ sensitive paths: `/.env`, `/.git/config`, `/.htaccess`, `/server-status`, `/phpinfo.php`, `/actuator/env`, `/swagger.json`, `/.DS_Store`, etc. |
 | **Path Traversal / LFI** | 14 payloads: `../../../etc/passwd`, `..\\..\\..\\boot.ini`, `..%2f..%2f`, `..%c0%af`, `/etc/passwd%00`, double-encoding variants |
-| **Backup File Detection** | Cek 18 backup paths: `backup.sql`, `database.sql`, `.env.backup`, `.env.bak`, `backup.zip`, `dump.rdb`, dll |
-| **Debug Mode Detection** | Cek 17 debug paths: `/debug`, `/trace`, `/_debugbar`, `/actuator/beans`, `/actuator/heapdump`, `/_profiler`, `/phpinfo.php` |
-| **SSRF via URL Parameters** | Test SSRF payloads pada 28 URL-like parameters di 8 endpoint patterns |
-| **Subdomain Takeover** | Resolve CNAME records, cek apakah point ke vulnerable services (CloudFront, S3, Heroku, GitHub Pages, Azure, dll). Verifikasi via response body indicators |
-| **Certificate Transparency** | Query `crt.sh` untuk discover subdomains dari CT logs. Simpan sebagai endpoints untuk testing lanjutan |
-| **HTTPS/TLS Misconfiguration** | Koneksi langsung ke TLS, cek: cert expired, self-signed, hostname mismatch, expiring <30 hari, weak signature (SHA1), TLS 1.0/1.1, missing HSTS |
+| **Backup File Detection** | Check 18 backup paths: `backup.sql`, `database.sql`, `.env.backup`, `.env.bak`, `backup.zip`, `dump.rdb`, etc. |
+| **Debug Mode Detection** | Check 17 debug paths: `/debug`, `/trace`, `/_debugbar`, `/actuator/beans`, `/actuator/heapdump`, `/_profiler`, `/phpinfo.php` |
+| **SSRF via URL Parameters** | Test SSRF payloads on 28 URL-like parameters across 8 endpoint patterns |
+| **Subdomain Takeover** | Resolve CNAME records, check whether they point to vulnerable services (CloudFront, S3, Heroku, GitHub Pages, Azure, etc.). Verify via response body indicators |
+| **Certificate Transparency** | Query `crt.sh` to discover subdomains from CT logs. Store them as endpoints for further testing |
+| **HTTPS/TLS Misconfiguration** | Connect directly to TLS, check: expired cert, self-signed, hostname mismatch, expiring <30 days, weak signature (SHA1), TLS 1.0/1.1, missing HSTS |
 
 **Key Findings:**
-- `path-traversal` (Critical) — Bisa baca file sistem
-- `backup-file` (High) — Backup file terekspos
-- `subdomain-takeover` (High) — CNAME dangling
-- `tls-cert-expired` (High) — Sertifikat kadaluarsa
-- `debug-mode` (Medium) — Debug endpoint terekspos
+- `path-traversal` (Critical) — Can read system files
+- `backup-file` (High) — Backup file exposed
+- `subdomain-takeover` (High) — Dangling CNAME
+- `tls-cert-expired` (High) — Certificate expired
+- `debug-mode` (Medium) — Debug endpoint exposed
 
 ---
 
 ### Phase 9: DDoS Simulation
 
-**Tujuan:** Menguji ketahanan server terhadap serangan denial of service.
+**Goal:** Test the server's resilience against denial-of-service attacks.
 
-| Teknik | Detail |
+| Technique | Detail |
 |--------|--------|
-| **Slowloris** | Buka 10 koneksi TCP, kirim partial HTTP headers pelan-pelan setiap 3 detik selama 15 detik. Jika ≥50% koneksi masih hidup → vulnerable |
-| **HTTP Flood** | Kirim 100 concurrent requests (20 concurrency). Ukur: success rate, 5xx errors, timeouts, min/max/avg response time. Jika >5 5xx atau >20 timeout → high |
-| **Amplification Check** | Test 3 jenis oversized request: URL 8KB, POST body 100KB, header value 8KB. Jika diterima tanpa error → server bisa di-abuse |
-| **Connection Exhaustion** | Buka 50 concurrent TCP connections. Jika ≥45 berhasil → tidak ada connection rate limiting |
-| **Slow POST (R.U.D.Y.)** | Kirim POST dengan `Content-Length: 10000` tapi deliver body 1 byte/detik. Jika ≥50% koneksi masih hidup setelah 10 detik → vulnerable |
+| **Slowloris** | Open 10 TCP connections, send partial HTTP headers slowly every 3 seconds for 15 seconds. If ≥50% of connections stay alive → vulnerable |
+| **HTTP Flood** | Send 100 concurrent requests (20 concurrency). Measure: success rate, 5xx errors, timeouts, min/max/avg response time. If >5 5xx or >20 timeouts → high |
+| **Amplification Check** | Test 3 kinds of oversized request: 8KB URL, 100KB POST body, 8KB header value. If accepted without error → server can be abused |
+| **Connection Exhaustion** | Open 50 concurrent TCP connections. If ≥45 succeed → no connection rate limiting |
+| **Slow POST (R.U.D.Y.)** | Send a POST with `Content-Length: 10000` but deliver the body at 1 byte/second. If ≥50% of connections stay alive after 10 seconds → vulnerable |
 
 **Key Findings:**
-- `slowloris` — Server rentan terhadap Slowloris
-- `http-flood-degradation` — Server degradasi under load
-- `connection-exhaustion` — Tidak ada connection rate limit
+- `slowloris` — Server vulnerable to Slowloris
+- `http-flood-degradation` — Server degrades under load
+- `connection-exhaustion` — No connection rate limit
 - `slow-post` — R.U.D.Y. vulnerability
 
 ---
 
 ### Phase 10: Fuzzing Stress
 
-**Tujuan:** Mengirim input abnormal untuk menemukan crash, unhandled errors, dan edge cases.
+**Goal:** Send abnormal input to find crashes, unhandled errors, and edge cases.
 
-| Teknik | Detail |
+| Technique | Detail |
 |--------|--------|
-| **Parameter Fuzzing** | Kirim 25 fuzz values ke 16 parameter umum di 5 endpoints. Values: long string (10K), format strings (`%s`, `%n`, `%x`), template injection (`{{7*7}}`, `${7*7}`), null bytes, SQLi, XSS, unicode flood (🐱), CRLF, path traversal, file URI, ldap/gopher URIs. Cap: 50 tests |
+| **Parameter Fuzzing** | Send 25 fuzz values to 16 common parameters across 5 endpoints. Values: long string (10K), format strings (`%s`, `%n`, `%x`), template injection (`{{7*7}}`, `${7*7}`), null bytes, SQLi, XSS, unicode flood (🐱), CRLF, path traversal, file URI, ldap/gopher URIs. Cap: 50 tests |
 | **Header Fuzzing** | Fuzz 11 headers × 10 values: long value (8K), special chars, null byte, newline injection, format string, unicode flood, template injection, SSI, CRLF double |
-| **Method Fuzzing** | Test 16 unusual methods: `TRACE`, `TRACK`, `CONNECT`, `PROPFIND`, `MKCOL`, `COPY`, `MOVE`, `LOCK`, `PURGE`, `LINK`, dll. **TRACE** special: jika reflects request → Cross-Site Tracing (XST) |
-| **Content-Type Fuzzing** | Kirim POST dengan 13 content-type/body combos: oversized JSON, invalid JSON, deep JSON, XXE in XML, multipart, NoSQL injection (`$gt`, `$ne`, `$where`), prototype pollution, binary data |
+| **Method Fuzzing** | Test 16 unusual methods: `TRACE`, `TRACK`, `CONNECT`, `PROPFIND`, `MKCOL`, `COPY`, `MOVE`, `LOCK`, `PURGE`, `LINK`, etc. **TRACE** is special: if it reflects the request → Cross-Site Tracing (XST) |
+| **Content-Type Fuzzing** | Send POST with 13 content-type/body combos: oversized JSON, invalid JSON, deep JSON, XXE in XML, multipart, NoSQL injection (`$gt`, `$ne`, `$where`), prototype pollution, binary data |
 | **Boundary Fuzzing** | 8 extreme payloads: 100KB JSON, empty body, deeply nested JSON (50 levels), binary garbage, partial JSON, array overflow (10K elements), unicode null JSON |
 | **Encoding Fuzzing** | 13 encoded payloads: double-encoded (`%252e%252e`), URL-encoded XSS/SQLi, base64-encoded attacks, mixed unicode, overlong UTF-8 (`%c0%ae`), percent null/newline |
 
 **Key Findings:**
-- `param-fuzz-500` — Parameter fuzzed menyebabkan server error
-- `unusual-method` — HTTP method tidak umum diterima
-- `boundary-fuzz-timeout` — Server timeout on extreme payload
-- `encoding-fuzz-reflection` — Server decode dan reflect payload berbahaya
-- `slow-response` — Endpoint merespons di atas threshold (default: 500ms)
+- `param-fuzz-500` — A fuzzed parameter caused a server error
+- `unusual-method` — Unusual HTTP method accepted
+- `boundary-fuzz-timeout` — Server timeout on an extreme payload
+- `encoding-fuzz-reflection` — Server decodes and reflects a dangerous payload
+- `slow-response` — Endpoint responds above the threshold (default: 500ms)
 
 ---
 
-### ⏱ Slow Response Tracking (Otomatis di Semua Phase)
+### ⏱ Slow Response Tracking (Automatic Across All Phases)
 
-Selain 10 phase testing, agent otomatis mengecek response time **setiap HTTP request** yang dikirim. Jika response time melebihi threshold, akan dibuatkan finding `minor`.
+In addition to the 10 testing phases, the agent automatically checks the response time of **every HTTP request** it sends. If a response time exceeds the threshold, a `minor` finding is created.
 
-**Konfigurasi:**
+**Configuration:**
 
 ```json
 {
@@ -565,19 +565,19 @@ Selain 10 phase testing, agent otomatis mengecek response time **setiap HTTP req
 }
 ```
 
-| Setting | Efek |
+| Setting | Effect |
 |---------|------|
-| `500` (default) | Flag response yang > 500ms |
-| `200` | Lebih sensitif, flag > 200ms |
-| `1000` | Hanya flag response sangat lambat > 1 detik |
+| `500` (default) | Flag responses > 500ms |
+| `200` | More sensitive, flag > 200ms |
+| `1000` | Only flag very slow responses > 1 second |
 | `0` | Disable slow response tracking |
 
-**Cara kerja:**
-- Hook ke setiap `MakeRequest` via callback — tidak ada perubahan ke phase code
-- Deduplikasi per URL (URL yang sama hanya dilaporkan sekali per scan)
-- Finding otomatis masuk ke phase yang sedang berjalan
+**How it works:**
+- Hooks into every `MakeRequest` via a callback — no changes to phase code
+- Deduplication per URL (the same URL is only reported once per scan)
+- The finding automatically goes into the currently running phase
 - Severity: `minor`
-- Masuk ke PDF report dan knowledge base
+- Included in the PDF report and the knowledge base
 
 **Example finding:**
 ```
@@ -592,57 +592,57 @@ Remediation: Investigate slow endpoint. Consider caching, query optimization, or
 
 ## 🧠 Learning Engine
 
-Setiap iterasi, agent belajar dan meningkatkan serangan:
+On every iteration, the agent learns and improves its attacks:
 
-1. **Load** — Knowledge base: endpoints, parameters, past findings, tech stack, teknik yang berhasil/gagal
-2. **Plan** — Buat rencana scan berdasarkan data: tech-specific payloads, skip teknik yang gagal, deep-dive di teknik yang berhasil
-3. **Scan** — Eksekusi semua 10 phase
-4. **Learn** — Record: findings baru, endpoints baru, techniques success/failure, payloads yang sudah dipakai
-5. **Report** — Generate PDF
-6. **Improve** — Iterasi berikutnya:
-   - Skip payloads yang sudah ditest (deduplication)
-   - Skip teknik yang selalu gagal di target ini
-   - Deep-dive di teknik yang berhasil (misal: error-based SQLi → blind/time-based)
-   - Tech-specific payloads (deteksi PHP → coba PHP-specific payloads)
+1. **Load** — Knowledge base: endpoints, parameters, past findings, tech stack, successful/failed techniques
+2. **Plan** — Build a scan plan based on the data: tech-specific payloads, skip failed techniques, deep-dive into successful techniques
+3. **Scan** — Execute all 10 phases
+4. **Learn** — Record: new findings, new endpoints, technique success/failure, payloads already used
+5. **Report** — Generate a PDF
+6. **Improve** — On the next iteration:
+   - Skip payloads already tested (deduplication)
+   - Skip techniques that always fail on this target
+   - Deep-dive into successful techniques (e.g. error-based SQLi → blind/time-based)
+   - Tech-specific payloads (detect PHP → try PHP-specific payloads)
 
-**Contoh evolusi:**
+**Evolution example:**
 ```
-Iterasi 1: Temukan error-based SQLi di parameter "id"
-Iterasi 2: Coba blind/time-based SQLi di parameter yang sama + parameter lain
-Iterasi 3: Coba WAF bypass techniques di SQLi yang sudah ditemukan
+Iteration 1: Find error-based SQLi in the "id" parameter
+Iteration 2: Try blind/time-based SQLi on the same parameter + other parameters
+Iteration 3: Try WAF bypass techniques on the SQLi already found
 ```
 
 ---
 
 ## 🌐 API Endpoints
 
-| Method | Endpoint | Deskripsi |
+| Method | Endpoint | Description |
 |--------|----------|-----------|
-| `POST` | `/api/scan/start` | Mulai scan (`{"target_id": "..."}`) |
-| `GET` | `/api/scan/progress` | Progress scan saat ini |
-| `GET` | `/api/scan/history` | Riwayat semua scan |
-| `GET` | `/api/config` | Ambil konfigurasi |
-| `PUT` | `/api/config` | Update konfigurasi (hot-reload) |
-| `GET` | `/api/targets` | List semua target |
-| `POST` | `/api/targets` | Tambah target baru |
-| `PUT` | `/api/targets/{id}` | Update target |
-| `DELETE` | `/api/targets/{id}` | Hapus target |
-| `GET` | `/api/reports` | List semua report |
-| `GET` | `/api/reports/download/{file}` | Download PDF report |
+| `POST` | `/api/scan/start` | Start a scan (`{"target_id": "..."}`) |
+| `GET` | `/api/scan/progress` | Current scan progress |
+| `GET` | `/api/scan/history` | History of all scans |
+| `GET` | `/api/config` | Get configuration |
+| `PUT` | `/api/config` | Update configuration (hot-reload) |
+| `GET` | `/api/targets` | List all targets |
+| `POST` | `/api/targets` | Add a new target |
+| `PUT` | `/api/targets/{id}` | Update a target |
+| `DELETE` | `/api/targets/{id}` | Delete a target |
+| `GET` | `/api/reports` | List all reports |
+| `GET` | `/api/reports/download/{file}` | Download a PDF report |
 | `GET` | `/api/skills` | Learning overview |
-| `POST` | `/api/skills/{id}/reset` | Reset knowledge base |
+| `POST` | `/api/skills/{id}/reset` | Reset the knowledge base |
 
 ---
 
-## 📊 Dashboard Web
+## 📊 Web Dashboard
 
-Dashboard built-in di **http://localhost:5555** dengan halaman:
+A built-in dashboard at **http://localhost:5555** with these pages:
 
 - **Dashboard** — Overview: active scans, findings summary, severity breakdown
-- **Scan** — Start/monitor scan, real-time progress per phase
-- **Reports** — List dan download PDF reports
-- **Config** — Edit konfigurasi target dan agent
-- **Skills** — Lihat learning progress, knowledge base, reset
+- **Scan** — Start/monitor a scan, real-time progress per phase
+- **Reports** — List and download PDF reports
+- **Config** — Edit target and agent configuration
+- **Skills** — View learning progress, knowledge base, reset
 
 ---
 
@@ -721,7 +721,7 @@ red-team-agent/
 ## 🔨 Cross-Compilation
 
 ```bash
-# Semua platform
+# All platforms
 make build-all
 
 # Per platform
@@ -738,35 +738,35 @@ Binary output: ~11MB per platform (stripped).
 ## 🐳 Docker
 
 ```bash
-# Build dan jalankan
+# Build and run
 docker-compose up -d
 
-# Lihat logs
+# View logs
 docker-compose logs -f
 
 # Stop
 docker-compose down
 
-# Rebuild setelah code changes
+# Rebuild after code changes
 docker-compose up -d --build
 ```
 
 Volumes:
-- `./config:/app/config` — Konfigurasi
+- `./config:/app/config` — Configuration
 - `./data:/app/data` — Knowledge base
 - `./reports:/app/reports` — PDF reports
 
 ---
 
-## 🔐 Cara Setup Autentikasi (Login / Token)
+## 🔐 Authentication Setup (Login / Token)
 
-Banyak target butuh autentikasi sebelum bisa di-scan. Red Team Agent support 4 metode auth.
+Many targets require authentication before they can be scanned. Red Team Agent supports 4 auth methods.
 
 ---
 
-### Metode 1: Form Login (Username + Password)
+### Method 1: Form Login (Username + Password)
 
-Untuk aplikasi yang pakai form login biasa (POST username & password).
+For applications that use a regular login form (POST username & password).
 
 **Via `config.json`:**
 
@@ -791,27 +791,27 @@ Untuk aplikasi yang pakai form login biasa (POST username & password).
 }
 ```
 
-**Penjelasan field:**
+**Field explanation:**
 
-| Field | Wajib | Deskripsi |
+| Field | Required | Description |
 |-------|-------|----------|
-| `method` | ✅ | Set ke `"form"` |
-| `username` | ✅ | Username/email untuk login |
-| `password` | ✅ | Password akun |
-| `login_url` | ✅ | URL lengkap halaman login |
-| `login_selectors` | ⬜ | CSS selector untuk form elements (untuk headless browser login) |
+| `method` | ✅ | Set to `"form"` |
+| `username` | ✅ | Username/email for login |
+| `password` | ✅ | Account password |
+| `login_url` | ✅ | Full URL of the login page |
+| `login_selectors` | ⬜ | CSS selectors for the form elements (for headless browser login) |
 
-**Cara kerja:**
-1. Agent buka `login_url` pakai headless browser
-2. Isi form pakai selectors (atau default input fields)
-3. Submit dan simpan session cookie
-4. Semua request selanjutnya pakai cookie tersebut
+**How it works:**
+1. The agent opens `login_url` using the headless browser
+2. Fills the form using the selectors (or default input fields)
+3. Submits and stores the session cookie
+4. All subsequent requests use that cookie
 
 ---
 
-### Metode 2: Bearer Token (API Key / JWT)
+### Method 2: Bearer Token (API Key / JWT)
 
-Untuk API yang pakai token di header `Authorization`.
+For APIs that use a token in the `Authorization` header.
 
 **Via `config.json`:**
 
@@ -829,21 +829,21 @@ Untuk API yang pakai token di header `Authorization`.
 }
 ```
 
-**Cara kerja:**
-- Setiap request yang dikirim agent akan include header:
+**How it works:**
+- Every request the agent sends will include the header:
   ```
   Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   ```
 
 **Tips:**
-- Bisa pakai JWT token, API key, atau apa saja yang dimasukkan ke `Authorization` header
-- Jika API pakai custom header (misal `X-API-Key`), gunakan token juga — agent akan deteksi formatnya
+- You can use a JWT token, API key, or anything placed in the `Authorization` header
+- If the API uses a custom header (e.g. `X-API-Key`), use the token as well — the agent will detect its format
 
 ---
 
-### Metode 3: HTTP Basic Auth
+### Method 3: HTTP Basic Auth
 
-Untuk server/api yang pakai standard HTTP Basic Authentication.
+For servers/APIs that use standard HTTP Basic Authentication.
 
 **Via `config.json`:**
 
@@ -862,15 +862,15 @@ Untuk server/api yang pakai standard HTTP Basic Authentication.
 }
 ```
 
-**Cara kerja:**
-- Agent encode `username:password` ke Base64
-- Setiap request include header: `Authorization: Basic YWRtaW46c3RhZ2luZzEyMw==`
+**How it works:**
+- The agent encodes `username:password` to Base64
+- Every request includes the header: `Authorization: Basic YWRtaW46c3RhZ2luZzEyMw==`
 
 ---
 
-### Metode 4: Tanpa Autentikasi
+### Method 4: No Authentication
 
-Untuk target publik yang tidak butuh login.
+For public targets that don't require login.
 
 ```json
 {
@@ -884,60 +884,60 @@ Untuk target publik yang tidak butuh login.
   }]
 ```
 
-Phase 3 (Authentication Testing) akan diskip otomatis.
+Phase 3 (Authentication Testing) is skipped automatically.
 
 ---
 
-### Setup via Environment Variable
+### Setup via Environment Variables
 
-Kalo gak mau simpan credentials di `config.json` (misalnya untuk CI/CD atau security):
+If you don't want to store credentials in `config.json` (e.g. for CI/CD or security):
 
 ```bash
 # Format: RTA_TARGET_{ID}_USERNAME, RTA_TARGET_{ID}_PASSWORD, RTA_TARGET_{ID}_TOKEN
-# ID di-uppercase, non-alphanumeric diganti underscore
+# ID is uppercased, non-alphanumeric replaced with underscore
 
-# Contoh untuk target ID "my-app":
+# Example for target ID "my-app":
 export RTA_TARGET_MY_APP_USERNAME=admin
 export RTA_TARGET_MY_APP_PASSWORD=secret123
 export RTA_TARGET_MY_APP_LOGIN_URL=/login
 
-# Contoh untuk target ID "api-prod" pakai token:
+# Example for target ID "api-prod" using a token:
 export RTA_TARGET_API_PROD_TOKEN=eyJhbGciOiJIUzI1NiIs...
 
-# Override URL juga bisa:
+# Overriding the URL also works:
 export RTA_TARGET_MY_APP_URL=https://staging.example.com
 
-# Agent otomatis deteksi:
-# - Ada USERNAME → method = "form"
-# - Ada TOKEN → method = "token"
+# The agent auto-detects:
+# - USERNAME present → method = "form"
+# - TOKEN present → method = "token"
 
 ./red-team-agent --config config.json --data data
 ```
 
-**Semua env vars yang didukung:**
+**All supported env vars:**
 
-| Env Var | Contoh | Deskripsi |
+| Env Var | Example | Description |
 |---------|--------|----------|
-| `RTA_TARGET_{ID}_USERNAME` | `RTA_TARGET_MY_APP_USERNAME=admin` | Username untuk login |
-| `RTA_TARGET_{ID}_PASSWORD` | `RTA_TARGET_MY_APP_PASSWORD=secret` | Password untuk login |
+| `RTA_TARGET_{ID}_USERNAME` | `RTA_TARGET_MY_APP_USERNAME=admin` | Username for login |
+| `RTA_TARGET_{ID}_PASSWORD` | `RTA_TARGET_MY_APP_PASSWORD=secret` | Password for login |
 | `RTA_TARGET_{ID}_TOKEN` | `RTA_TARGET_API_PROD_TOKEN=eyJ...` | Bearer token / API key |
-| `RTA_TARGET_{ID}_LOGIN_URL` | `RTA_TARGET_MY_APP_LOGIN_URL=/login` | Path login URL |
+| `RTA_TARGET_{ID}_LOGIN_URL` | `RTA_TARGET_MY_APP_LOGIN_URL=/login` | Login URL path |
 | `RTA_TARGET_{ID}_URL` | `RTA_TARGET_MY_APP_URL=https://...` | Override target URL |
 | `RTA_TARGET_{ID}_ENABLED` | `RTA_TARGET_MY_APP_ENABLED=true` | Enable/disable target |
 | `RTA_AGENT_PROXY` | `RTA_AGENT_PROXY=socks5://127.0.0.1:9050` | HTTP/SOCKS proxy |
 
 ---
 
-### Setup via Dashboard Web
+### Setup via the Web Dashboard
 
-1. Buka **http://localhost:5555**
-2. Pergi ke tab **Config**
-3. Edit target → set `auth.method`, `auth.username`, `auth.password`, atau `auth.token`
-4. Save — config langsung hot-reload, scan berikutnya pakai credentials baru
+1. Open **http://localhost:5555**
+2. Go to the **Config** tab
+3. Edit the target → set `auth.method`, `auth.username`, `auth.password`, or `auth.token`
+4. Save — the config hot-reloads immediately, and the next scan uses the new credentials
 
 ---
 
-### Contoh Lengkap: Login Form + Scan
+### Full Example: Login Form + Scan
 
 ```json
 {
@@ -983,14 +983,14 @@ export RTA_TARGET_MY_APP_URL=https://staging.example.com
 }
 ```
 
-**Catatan:**
-- `exclude_paths` bisa dipakai untuk skip path yang berbahaya (misal delete/drop)
-- `ddos: false` — matiin DDoS simulation biar staging gak down
-- `rate_limit_rps: 3` — perlambat request biar gak kebablasan
+**Notes:**
+- `exclude_paths` can be used to skip dangerous paths (e.g. delete/drop)
+- `ddos: false` — disable DDoS simulation so staging doesn't go down
+- `rate_limit_rps: 3` — slow down requests so things don't get out of hand
 
 ---
 
-### Contoh: API dengan Bearer Token
+### Example: API with a Bearer Token
 
 ```json
 {
@@ -1026,15 +1026,15 @@ export RTA_TARGET_MY_APP_URL=https://staging.example.com
 }
 ```
 
-**Catatan:**
-- `auth: false` — skip auth testing karena udah pakai token
-- `client_side: false` — API biasanya gak ada UI
-- `ddos: false`, `fuzz: false` — jangan stress-test production API
-- `rate_limit_rps: 2` — hati-hati di production
+**Notes:**
+- `auth: false` — skip auth testing because a token is already used
+- `client_side: false` — APIs usually have no UI
+- `ddos: false`, `fuzz: false` — don't stress-test a production API
+- `rate_limit_rps: 2` — be careful in production
 
 ---
 
-### Contoh: Multiple Targets
+### Example: Multiple Targets
 
 ```json
 {
@@ -1086,19 +1086,19 @@ export RTA_TARGET_MY_APP_URL=https://staging.example.com
 
 ## ⚠️ Disclaimer
 
-Tool ini dibuat untuk **security testing yang sah**. Hanya gunakan pada:
+This tool is built for **authorized security testing**. Only use it on:
 
-- Aplikasi yang **Anda miliki**
-- Aplikasi yang Anda punya **izin eksplisit** untuk ditest
-- Environment **staging/testing** yang disetujuh
+- Applications **you own**
+- Applications you have **explicit permission** to test
+- Approved **staging/testing** environments
 
-**Penggunaan tanpa izin adalah ilegal.** Tool ini mengirimkan request agresif (injection payloads, fuzzing, DDoS simulation) yang bisa menyebabkan gangguan pada production systems. Gunakan dengan bertanggung jawab.
+**Unauthorized use is illegal.** This tool sends aggressive requests (injection payloads, fuzzing, DDoS simulation) that can disrupt production systems. Use it responsibly.
 
 ---
 
-## 📊 Statistik Coverage
+## 📊 Coverage Statistics
 
-| Kategori | Jumlah |
+| Category | Count |
 |----------|--------|
 | **Attack Phases** | 10 |
 | **Unique Techniques** | 80+ |
