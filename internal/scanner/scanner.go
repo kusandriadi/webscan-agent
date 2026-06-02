@@ -3,10 +3,12 @@ package scanner
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +16,14 @@ import (
 	"red-team-agent/internal/config"
 	"red-team-agent/internal/knowledge"
 )
+
+// BrowserLogin is the minimal browser capability the scanner needs to
+// establish an authenticated session via a real login form. It is satisfied
+// by browser.Manager and kept as an interface here to avoid importing the
+// (heavy) browser/rod package into the scanner.
+type BrowserLogin interface {
+	FormLoginCookies(loginURL, username, password string, selectors map[string]string) (map[string]string, bool, error)
+}
 
 type PhaseResult struct {
 	Phase         string                `json:"phase"`
@@ -164,6 +174,108 @@ type HTTPClient struct {
 	Headers     map[string]string
 	Cookies     map[string]string
 	OnResponse  func(*HTTPResponse) // callback after each request
+	Ctx         context.Context     // cancellation context for the current scan
+	Scope       *scopeChecker       // include/exclude path enforcement
+	SessionHost string              // only send session creds (Authorization/Cookies) to this host
+	limiter     *rateLimiter        // global, concurrency-safe rate limiter
+}
+
+// sessionApplies reports whether session credentials should be attached to a
+// request for the given host. Credentials are scoped to the target host so a
+// bearer token or session cookie is never leaked to a third party (e.g. crt.sh).
+func (c *HTTPClient) sessionApplies(host string) bool {
+	if c.SessionHost == "" {
+		return true
+	}
+	return strings.EqualFold(host, c.SessionHost)
+}
+
+// rateLimiter spaces out requests by a fixed interval across ALL goroutines,
+// so concurrent phases (ddos, fuzz) cannot exceed the configured RPS.
+type rateLimiter struct {
+	mu       sync.Mutex
+	interval time.Duration
+	next     time.Time
+}
+
+func (r *rateLimiter) wait(ctx context.Context) {
+	if r == nil || r.interval <= 0 {
+		return
+	}
+	r.mu.Lock()
+	now := time.Now()
+	if r.next.Before(now) {
+		r.next = now
+	}
+	delay := r.next.Sub(now)
+	r.next = r.next.Add(r.interval)
+	r.mu.Unlock()
+
+	if delay <= 0 {
+		return
+	}
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	if ctx == nil {
+		<-timer.C
+		return
+	}
+	select {
+	case <-timer.C:
+	case <-ctx.Done():
+	}
+}
+
+// scopeChecker enforces the target's include_paths / exclude_paths rules.
+// Requests to disallowed paths are blocked before any network I/O.
+type scopeChecker struct {
+	include []string
+	exclude []string
+}
+
+func (sc *scopeChecker) allowed(rawURL string) bool {
+	if sc == nil {
+		return true
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return true // never block on an unparseable URL
+	}
+	path := u.Path
+	if path == "" {
+		path = "/"
+	}
+	for _, ex := range sc.exclude {
+		if pathMatch(ex, path) {
+			return false
+		}
+	}
+	if len(sc.include) > 0 {
+		for _, in := range sc.include {
+			if pathMatch(in, path) {
+				return true
+			}
+		}
+		return false
+	}
+	return true
+}
+
+// pathMatch supports exact paths, a trailing "*" wildcard, and "*" (match all).
+// An exact pattern also matches everything beneath it, so "/admin/delete"
+// blocks "/admin/delete" and "/admin/delete/123".
+func pathMatch(pattern, path string) bool {
+	pattern = strings.TrimSpace(pattern)
+	if pattern == "" {
+		return false
+	}
+	if pattern == "*" {
+		return true
+	}
+	if strings.HasSuffix(pattern, "*") {
+		return strings.HasPrefix(path, strings.TrimSuffix(pattern, "*"))
+	}
+	return path == pattern || strings.HasPrefix(path, strings.TrimRight(pattern, "/")+"/")
 }
 
 func NewScanner(cfg *config.Config, kb *knowledge.KnowledgeBase) *Scanner {
@@ -194,6 +306,8 @@ func NewScanner(cfg *config.Config, kb *knowledge.KnowledgeBase) *Scanner {
 			Proxy:     cfg.Agent.Proxy,
 			Headers:   make(map[string]string),
 			Cookies:   make(map[string]string),
+			Ctx:       context.Background(),
+			limiter:   &rateLimiter{interval: rateLimit},
 			OnResponse: func(hr *HTTPResponse) {
 				// callback will be patched per-scan via setCurrentResult
 			},
@@ -203,7 +317,117 @@ func NewScanner(cfg *config.Config, kb *knowledge.KnowledgeBase) *Scanner {
 	}
 }
 
+// SetScope applies the target's include_paths / exclude_paths so that out-of-scope
+// requests (e.g. destructive admin paths) are blocked at the HTTP layer.
+func (s *Scanner) SetScope(target config.Target) {
+	inc := target.Scope.IncludePaths
+	exc := target.Scope.ExcludePaths
+	if len(inc) == 0 && len(exc) == 0 {
+		s.HTTPClient.Scope = nil
+		return
+	}
+	s.HTTPClient.Scope = &scopeChecker{include: inc, exclude: exc}
+	if len(exc) > 0 {
+		log.Printf("[Scanner] Scope enforced — exclude_paths: %v", exc)
+	}
+}
+
+// ApplyAuth establishes an authenticated session for the whole scan based on the
+// target's auth method. The resulting headers/cookies are attached to every
+// subsequent request. Call this BEFORE SetScope so the login URL is never blocked.
+func (s *Scanner) ApplyAuth(ctx context.Context, target config.Target, browser BrowserLogin) {
+	if u, err := url.Parse(target.URL); err == nil {
+		s.HTTPClient.SessionHost = u.Hostname()
+	}
+	switch target.Auth.Method {
+	case "token":
+		if target.Auth.Token != "" {
+			token := target.Auth.Token
+			if !strings.HasPrefix(strings.ToLower(token), "bearer ") {
+				token = "Bearer " + token
+			}
+			s.HTTPClient.Headers["Authorization"] = token
+			log.Printf("[Auth] Applied bearer token to scan session")
+		}
+	case "basic":
+		if target.Auth.Username != "" {
+			cred := base64.StdEncoding.EncodeToString([]byte(target.Auth.Username + ":" + target.Auth.Password))
+			s.HTTPClient.Headers["Authorization"] = "Basic " + cred
+			log.Printf("[Auth] Applied HTTP basic auth to scan session")
+		}
+	case "form":
+		s.formLogin(ctx, target, browser)
+	}
+}
+
+// formLogin authenticates against a login form and stores the resulting session
+// cookies on the HTTP client. When login_selectors are configured it uses the
+// headless browser (most faithful to a real login); otherwise — or if the browser
+// fails — it falls back to a direct form POST and captures Set-Cookie headers.
+func (s *Scanner) formLogin(ctx context.Context, target config.Target, browser BrowserLogin) {
+	if target.Auth.LoginURL == "" || target.Auth.Username == "" {
+		return
+	}
+
+	if browser != nil && len(target.Auth.LoginSelectors) > 0 {
+		cookies, ok, err := browser.FormLoginCookies(
+			target.Auth.LoginURL, target.Auth.Username, target.Auth.Password, target.Auth.LoginSelectors)
+		if err == nil && len(cookies) > 0 {
+			for k, v := range cookies {
+				s.HTTPClient.Cookies[k] = v
+			}
+			log.Printf("[Auth] Browser form login established session (%d cookies, success=%v)", len(cookies), ok)
+			return
+		}
+		log.Printf("[Auth] Browser login unavailable (%v), falling back to HTTP form POST", err)
+	}
+
+	form := url.Values{}
+	form.Set("username", target.Auth.Username)
+	form.Set("email", target.Auth.Username)
+	form.Set("password", target.Auth.Password)
+
+	resp, err := s.HTTPClient.MakeRequest(HTTPRequest{
+		Method:  "POST",
+		URL:     target.Auth.LoginURL,
+		Headers: map[string]string{"Content-Type": "application/x-www-form-urlencoded"},
+		Body:    form.Encode(),
+	})
+	if err != nil {
+		log.Printf("[Auth] Form login failed: %v", err)
+		return
+	}
+
+	count := 0
+	for _, sc := range resp.Headers["Set-Cookie"] {
+		if name, value := parseSetCookie(sc); name != "" {
+			s.HTTPClient.Cookies[name] = value
+			count++
+		}
+	}
+	if count > 0 {
+		log.Printf("[Auth] HTTP form login captured %d session cookie(s)", count)
+	} else {
+		log.Printf("[Auth] HTTP form login returned no Set-Cookie (HTTP %d) — session may be unauthenticated", resp.StatusCode)
+	}
+}
+
+// parseSetCookie extracts the name and value from a Set-Cookie header value.
+func parseSetCookie(header string) (string, string) {
+	first := header
+	if i := strings.IndexByte(header, ';'); i >= 0 {
+		first = header[:i]
+	}
+	first = strings.TrimSpace(first)
+	eq := strings.IndexByte(first, '=')
+	if eq <= 0 {
+		return "", ""
+	}
+	return strings.TrimSpace(first[:eq]), strings.TrimSpace(first[eq+1:])
+}
+
 func (s *Scanner) Execute(ctx context.Context, plan *ScanPlan) *ScanResult {
+	s.HTTPClient.Ctx = ctx // propagate cancellation to every request
 	s.mu.Lock()
 	s.progress[plan.Target.ID] = "running"
 	s.slowURLs = make(map[string]bool) // reset slow URL dedup per scan
@@ -334,17 +558,16 @@ func (s *Scanner) CheckSlowResponse(resp *HTTPResponse) {
 		return
 	}
 	if resp.Duration >= s.SlowThreshold {
+		// Hold the lock across dedup AND append so concurrent phases (ddos, fuzz)
+		// cannot race on the shared currentResult slice.
 		s.mu.Lock()
+		defer s.mu.Unlock()
 		if s.slowURLs[resp.URL] {
-			s.mu.Unlock()
 			return
 		}
 		s.slowURLs[resp.URL] = true
-		s.mu.Unlock()
 
-		s.mu.Lock()
 		result := s.currentResult
-		s.mu.Unlock()
 		if result == nil {
 			return
 		}
@@ -398,8 +621,23 @@ var sharedTransport = &http.Transport{
 
 // MakeRequest performs a real HTTP request with rate limiting, timeout, and cookie jar
 func (c *HTTPClient) MakeRequest(req HTTPRequest) (*HTTPResponse, error) {
-	// Rate limiting
-	time.Sleep(c.RateLimit)
+	// Scope enforcement — refuse out-of-scope (e.g. excluded) URLs before any I/O.
+	if c.Scope != nil && !c.Scope.allowed(req.URL) {
+		return nil, fmt.Errorf("request blocked: out of scope: %s", req.URL)
+	}
+
+	ctx := c.Ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	// Rate limiting (global, concurrency-safe)
+	c.limiter.wait(ctx)
+
+	// Honor cancellation before spending a request
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 
 	// Build request body
 	var bodyReader io.Reader
@@ -407,7 +645,7 @@ func (c *HTTPClient) MakeRequest(req HTTPRequest) (*HTTPResponse, error) {
 		bodyReader = strings.NewReader(req.Body)
 	}
 
-	httpReq, err := http.NewRequest(req.Method, req.URL, bodyReader)
+	httpReq, err := http.NewRequestWithContext(ctx, req.Method, req.URL, bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
 	}
@@ -417,17 +655,25 @@ func (c *HTTPClient) MakeRequest(req HTTPRequest) (*HTTPResponse, error) {
 	httpReq.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	httpReq.Header.Set("Accept-Language", "en-US,en;q=0.5")
 
-	// Custom headers
+	// Global session headers first (e.g. Authorization from ApplyAuth), but only
+	// for the target host so credentials never leak to third parties...
+	sessionOK := c.sessionApplies(httpReq.URL.Hostname())
+	if sessionOK {
+		for k, v := range c.Headers {
+			httpReq.Header.Set(k, v)
+		}
+	}
+	// ...then per-request headers so a specific test can override the session
+	// (e.g. the auth phase sending its own Authorization for alg:none tests).
 	for k, v := range req.Headers {
 		httpReq.Header.Set(k, v)
 	}
-	for k, v := range c.Headers {
-		httpReq.Header.Set(k, v)
-	}
 
-	// Cookies
-	for k, v := range c.Cookies {
-		httpReq.AddCookie(&http.Cookie{Name: k, Value: v})
+	// Cookies (session-scoped to the target host)
+	if sessionOK {
+		for k, v := range c.Cookies {
+			httpReq.AddCookie(&http.Cookie{Name: k, Value: v})
+		}
 	}
 
 	// Query params

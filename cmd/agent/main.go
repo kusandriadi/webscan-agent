@@ -18,6 +18,7 @@ func main() {
 	dataDir := flag.String("data", "data", "Path to knowledge base directory")
 	port := flag.Int("port", 5555, "Dashboard port")
 	host := flag.String("host", "0.0.0.0", "Dashboard host")
+	scanNow := flag.Bool("scan-now", false, "Run one scan per enabled target immediately on startup")
 	flag.Parse()
 
 	fmt.Println(`
@@ -56,6 +57,7 @@ func main() {
 	}()
 
 	agt := agent.New(cfg, *dataDir)
+	agt.ScanNow = *scanNow
 	if err := agt.Run(ctx); err != nil && err != context.Canceled {
 		log.Fatalf("Agent error: %v", err)
 	}

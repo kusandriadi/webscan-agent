@@ -115,6 +115,22 @@ make dev
 go run ./cmd/agent/ --config config.json --data data
 ```
 
+### Triggering a Scan
+
+The agent does **not** scan on startup by default — it waits for each target's
+`schedule` (interval/cron) to fire. To start scanning immediately, use one of:
+
+```bash
+# Run one scan per enabled target right away, then keep the schedule running
+./red-team-agent --config config.json --data data --scan-now
+
+# Or trigger a single target on demand via the API (see "Via API" below)
+curl -X POST http://localhost:5555/api/scan/start -d '{"target_id":"example"}'
+```
+
+If `agent.max_iterations` is set (> 0), a target's schedule stops automatically
+once it has completed that many scan iterations.
+
 ### 3. Docker
 
 ```bash
@@ -228,12 +244,15 @@ Edit `config.json` or use the web dashboard:
 **Key fields:**
 | Field | Description |
 |-------|-------------|
-| `auth.method` | `none`, `form`, `token`, `basic` |
-| `scope.rate_limit_rps` | Max requests per second (default: 5) |
+| `auth.method` | `none`, `form`, `token`, `basic` — applied to the whole scan session and scoped to the target host |
+| `scope.include_paths` | Allowlist of path patterns to scan (default `["*"]` = all). Supports exact, prefix `*`, and `*` |
+| `scope.exclude_paths` | Path patterns that are blocked at the HTTP layer (e.g. `["/admin/delete", "/admin/drop"]`). Enforced for every request |
+| `scope.rate_limit_rps` | Max requests per second, enforced globally across concurrent phases (default: 5) |
 | `scope.timeout` | HTTP timeout per request |
 | `scope.slow_threshold_ms` | Flag a response as `minor` if it exceeds this threshold (default: `500` ms, set `0` to disable) |
 | `tests.*` | Enable/disable per phase |
 | `schedule.cron` | Cron expression for auto-scan |
+| `agent.max_iterations` | Stop a target's schedule after this many iterations (`0` = unlimited) |
 | `agent.proxy` | HTTP proxy (optional) |
 
 ---

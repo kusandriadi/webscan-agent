@@ -154,6 +154,64 @@ func (m *Manager) FormLogin(loginURL, username, password, usernameSel, passwordS
 	return loggedIn, nil
 }
 
+// FormLoginCookies performs a headless-browser form login and returns the
+// resulting session cookies so an HTTP-based scanner can reuse the session.
+// It never panics: any rod failure is returned as an error for the caller to
+// fall back on. selectors may provide "username", "password" and "submit" keys.
+func (m *Manager) FormLoginCookies(loginURL, username, password string, selectors map[string]string) (map[string]string, bool, error) {
+	if err := m.EnsureBrowser(context.Background()); err != nil {
+		return nil, false, err
+	}
+	page, err := m.NewPage()
+	if err != nil {
+		return nil, false, err
+	}
+	defer page.Close()
+
+	usernameSel := selectors["username"]
+	passwordSel := selectors["password"]
+	submitSel := selectors["submit"]
+	if usernameSel == "" {
+		usernameSel = "input[name='username'], input[type='email']"
+	}
+	if passwordSel == "" {
+		passwordSel = "input[name='password'], input[type='password']"
+	}
+	if submitSel == "" {
+		submitSel = "button[type='submit'], input[type='submit']"
+	}
+
+	loggedIn := false
+	err = rod.Try(func() {
+		page.Timeout(30 * time.Second).MustNavigate(loginURL).MustWaitStable()
+		page.MustElement(usernameSel).MustInput(username)
+		page.MustElement(passwordSel).MustInput(password)
+		page.MustElement(submitSel).MustClick()
+		page.MustWaitStable()
+
+		info, _ := page.Info()
+		if info != nil {
+			loggedIn = !strings.Contains(info.URL, "login") &&
+				!strings.Contains(strings.ToLower(info.Title), "login")
+		}
+	})
+	if err != nil {
+		return nil, false, fmt.Errorf("browser login: %w", err)
+	}
+
+	cookies, err := page.Cookies([]string{})
+	if err != nil {
+		return nil, loggedIn, fmt.Errorf("read cookies: %w", err)
+	}
+	out := make(map[string]string, len(cookies))
+	for _, c := range cookies {
+		if c != nil && c.Name != "" {
+			out[c.Name] = c.Value
+		}
+	}
+	return out, loggedIn, nil
+}
+
 func (m *Manager) GetLinks(targetURL string) ([]string, error) {
 	if err := m.EnsureBrowser(context.Background()); err != nil {
 		return nil, err

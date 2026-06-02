@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"red-team-agent/internal/api"
@@ -23,8 +24,18 @@ type Agent struct {
 	API       *api.Server
 	Planner   *Planner
 	Scheduler *Scheduler
+	ScanNow   bool // run one scan per enabled target immediately on startup
 	dataDir   string
 	history   []api.ScanResult
+
+	scanMu  sync.Mutex      // guards Scanner
+	rootCtx context.Context // root context, set in Run; used by API-triggered scans
+}
+
+func (a *Agent) setScanner(s *scanner.Scanner) {
+	a.scanMu.Lock()
+	a.Scanner = s
+	a.scanMu.Unlock()
 }
 
 func New(cfg *config.Config, dataDir string) *Agent {
@@ -42,8 +53,17 @@ func New(cfg *config.Config, dataDir string) *Agent {
 	return agt
 }
 
-// ExecuteScan implements api.ScanExecutor
-func (a *Agent) ExecuteScan(targetID string) (summary *api.ScanResult, err error) {
+// ExecuteScan implements api.ScanExecutor. It runs under the agent's root
+// context so an in-flight scan is cancelled on shutdown.
+func (a *Agent) ExecuteScan(targetID string) (*api.ScanResult, error) {
+	ctx := a.rootCtx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return a.executeScan(ctx, targetID)
+}
+
+func (a *Agent) executeScan(ctx context.Context, targetID string) (summary *api.ScanResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[Agent] Panic recovered in ExecuteScan: %v", r)
@@ -67,9 +87,14 @@ func (a *Agent) ExecuteScan(targetID string) (summary *api.ScanResult, err error
 		kb.Skills.Iteration+1, t.Name, t.URL)
 
 	s := scanner.NewScanner(a.Config, kb)
-	a.Scanner = s
+	a.setScanner(s)
 
-	result := s.Execute(context.Background(), plan)
+	// Establish an authenticated session (token/basic/form) BEFORE applying
+	// scope, so the login URL itself is never blocked, then enforce scope.
+	s.ApplyAuth(ctx, *t, a.Browser)
+	s.SetScope(*t)
+
+	result := s.Execute(ctx, plan)
 
 	kb.IncrementIteration()
 
@@ -121,10 +146,14 @@ func (a *Agent) GetHistory() []api.ScanResult {
 
 // GetScanner implements api.ScanExecutor
 func (a *Agent) GetScanner() *scanner.Scanner {
+	a.scanMu.Lock()
+	defer a.scanMu.Unlock()
 	return a.Scanner
 }
 
 func (a *Agent) Run(ctx context.Context) error {
+	a.rootCtx = ctx
+
 	srv := api.New(a.Config, a.Knowledge, nil, a.Reporter, a)
 	a.API = srv
 
@@ -136,6 +165,18 @@ func (a *Agent) Run(ctx context.Context) error {
 
 	// Start cron/interval scheduler
 	a.Scheduler.Start(ctx)
+
+	// Optionally run one scan per enabled target right away
+	if a.ScanNow {
+		for _, t := range a.Config.GetEnabledTargets() {
+			id := t.ID
+			go func() {
+				if _, err := a.executeScan(ctx, id); err != nil {
+					log.Printf("[Agent] Startup scan failed for %s: %v", id, err)
+				}
+			}()
+		}
+	}
 
 	log.Println("Agent started. Dashboard + Scheduler running.")
 

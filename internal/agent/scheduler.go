@@ -132,8 +132,12 @@ func (s *Scheduler) runIntervalSchedule(ctx context.Context, target config.Targe
 				return
 			}
 
+			if s.maxIterationsReached(target.ID) {
+				return
+			}
+
 			log.Printf("[Scheduler] Interval triggered for %s (%s)", target.Name, intervalStr)
-			result, err := s.agent.ExecuteScan(target.ID)
+			result, err := s.agent.executeScan(ctx, target.ID)
 			if err != nil {
 				log.Printf("[Scheduler] Scan failed for %s: %v", target.ID, err)
 			} else {
@@ -168,8 +172,12 @@ func (s *Scheduler) runCronSchedule(ctx context.Context, target config.Target, c
 				return
 			}
 
+			if s.maxIterationsReached(target.ID) {
+				return
+			}
+
 			log.Printf("[Scheduler] Cron triggered for %s (%s)", target.Name, cronExpr)
-			result, err := s.agent.ExecuteScan(target.ID)
+			result, err := s.agent.executeScan(ctx, target.ID)
 			if err != nil {
 				log.Printf("[Scheduler] Scan failed for %s: %v", target.ID, err)
 			} else {
@@ -177,6 +185,22 @@ func (s *Scheduler) runCronSchedule(ctx context.Context, target config.Target, c
 			}
 		}
 	}
+}
+
+// maxIterationsReached reports whether the target has already reached the
+// configured agent.max_iterations cap (0 = unlimited). When reached, the
+// target's schedule loop stops.
+func (s *Scheduler) maxIterationsReached(targetID string) bool {
+	max := s.agent.Config.Agent.MaxIterations
+	if max <= 0 {
+		return false
+	}
+	kb, _ := s.agent.Knowledge.Load(targetID)
+	if kb != nil && kb.Skills.Iteration >= max {
+		log.Printf("[Scheduler] Target %s reached max_iterations (%d) — stopping schedule", targetID, max)
+		return true
+	}
+	return false
 }
 
 // ─── Cron Expression Parser ───
