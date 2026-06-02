@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Red Team Agent — New Scan</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav>
+    <div class="nav-brand"><span class="logo">🔴</span> Red Team Agent</div>
+    <div class="nav-links">
+        <a href="/">Dashboard</a>
+        <a href="/scan" class="active">New Scan</a>
+        <a href="/config">Configuration</a>
+        <a href="/reports">Reports</a>
+        <a href="/skills">Skills & Learning</a>
+    </div>
+</nav>
+
+<main class="container">
+    <h1>🚀 Start New Scan</h1>
+
+    <div id="scan-running-msg" class="alert alert-warning" style="display:none;">
+        ⚠️ A scan is already in progress. <a href="/">View progress →</a>
+    </div>
+
+    <div class="card">
+        <h2>Select Target</h2>
+        <div id="target-list">
+            <p class="muted">Loading targets...</p>
+        </div>
+    </div>
+
+    <div id="scan-progress-section" style="display:none;" class="card">
+        <h2>⏳ Scan Progress</h2>
+        <div id="scan-progress-info"></div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="scan-progress-bar"></div>
+        </div>
+        <div id="scan-progress-details"></div>
+    </div>
+</main>
+
+<script src="/static/js/scan.js"></script>
+</body>
+</html>

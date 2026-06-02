@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  red-team-agent:
+    build: .
+    container_name: red-team-agent
+    ports:
+      - "5555:5555"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./reports:/app/reports
+    environment:
+      - CHROME_BIN=/usr/bin/chromium
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555/api/config"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Red Team Agent — Reports</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav>
+    <div class="nav-brand"><span class="logo">🔴</span> Red Team Agent</div>
+    <div class="nav-links">
+        <a href="/">Dashboard</a>
+        <a href="/scan">New Scan</a>
+        <a href="/config">Configuration</a>
+        <a href="/reports" class="active">Reports</a>
+        <a href="/skills">Skills & Learning</a>
+    </div>
+</nav>
+
+<main class="container">
+    <h1>📄 Reports</h1>
+
+    <div class="card">
+        <div class="table-header">
+            <h2>All Reports</h2>
+            <div class="filter-group">
+                <select id="report-filter">
+                    <option value="all">All Files</option>
+                    <option value="pdf">PDF Only</option>
+                    <option value="json">JSON Only</option>
+                </select>
+            </div>
+        </div>
+        <table class="data-table" id="reports-table">
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Size</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="reports-tbody">
+                <tr><td colspan="4" class="muted">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<script src="/static/js/reports.js"></script>
+</body>
+</html>

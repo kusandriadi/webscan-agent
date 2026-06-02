@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Red Team Agent — Configuration</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav>
+    <div class="nav-brand"><span class="logo">🔴</span> Red Team Agent</div>
+    <div class="nav-links">
+        <a href="/">Dashboard</a>
+        <a href="/scan">New Scan</a>
+        <a href="/config" class="active">Configuration</a>
+        <a href="/reports">Reports</a>
+        <a href="/skills">Skills & Learning</a>
+    </div>
+</nav>
+
+<main class="container">
+    <h1>⚙️ Configuration</h1>
+
+    <!-- Add New Target -->
+    <div class="card">
+        <h2>+ Add New Target</h2>
+        <form id="add-target-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Target Name</label>
+                    <input type="text" id="t-name" placeholder="My Web App" required>
+                </div>
+                <div class="form-group">
+                    <label>Target URL</label>
+                    <input type="url" id="t-url" placeholder="https://example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Auth Method</label>
+                    <select id="t-auth-method">
+                        <option value="none">No Auth</option>
+                        <option value="form">Form Login</option>
+                        <option value="token">Bearer Token</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="auth-form-fields" class="form-grid" style="display:none;">
+                <div class="form-group">
+                    <label>Username / Email</label>
+                    <input type="text" id="t-username" placeholder="admin">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="t-password" placeholder="password">
+                </div>
+                <div class="form-group">
+                    <label>Login URL</label>
+                    <input type="text" id="t-login-url" placeholder="/login">
+                </div>
+            </div>
+
+            <div id="auth-token-fields" class="form-grid" style="display:none;">
+                <div class="form-group full-width">
+                    <label>Bearer Token</label>
+                    <input type="text" id="t-token" placeholder="eyJhbGci...">
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Issues URL (optional)</label>
+                    <input type="text" id="t-issues-url" placeholder="/api/issues">
+                </div>
+            </div>
+
+            <h3>Test Options</h3>
+            <div class="checkbox-grid">
+                <label><input type="checkbox" id="to-xss" checked> XSS Testing</label>
+                <label><input type="checkbox" id="to-sqli" checked> SQL Injection</label>
+                <label><input type="checkbox" id="to-csrf" checked> CSRF</label>
+                <label><input type="checkbox" id="to-idor" checked> IDOR</label>
+                <label><input type="checkbox" id="to-auth" checked> Auth Bypass</label>
+                <label><input type="checkbox" id="to-authz" checked> Authorization</label>
+                <label><input type="checkbox" id="to-session" checked> Session Mgmt</label>
+                <label><input type="checkbox" id="to-info" checked> Info Disclosure</label>
+                <label><input type="checkbox" id="to-api" checked> API Endpoints</label>
+                <label><input type="checkbox" id="to-owasp" checked> OWASP Top 10</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Add Target</button>
+        </form>
+    </div>
+
+    <!-- Existing Targets -->
+    <div class="card">
+        <h2>Existing Targets</h2>
+        <div id="targets-list">
+            <p class="muted">Loading...</p>
+        </div>
+    </div>
+</main>
+
+<script src="/static/js/config.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+# Compiled binaries
+/agent
+/red-team-agent
+*.exe
+*.out
+
+# Scan data & reports (not for sharing)
+/data/
+/reports/
+
+# Local config / secrets
+# config.json may contain target details — uncomment if needed
+# /config.json
+
+# OS / editor
+.DS_Store
+*.swp
+
+# Claude local
+.claude/

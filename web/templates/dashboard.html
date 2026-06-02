@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Red Team Agent — Dashboard</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<nav>
+    <div class="nav-brand">
+        <span class="logo">🔴</span> Red Team Agent
+    </div>
+    <div class="nav-links">
+        <a href="/" class="active">Dashboard</a>
+        <a href="/scan">New Scan</a>
+        <a href="/config">Configuration</a>
+        <a href="/reports">Reports</a>
+        <a href="/skills">Skills & Learning</a>
+    </div>
+</nav>
+
+<main class="container">
+    <div class="header-row">
+        <h1>Dashboard</h1>
+        <div id="scan-status-bar" class="status-bar">Loading...</div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-grid" id="quick-stats">
+        <div class="stat-card">
+            <div class="stat-value" id="total-targets">-</div>
+            <div class="stat-label">Targets</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="total-scans">-</div>
+            <div class="stat-label">Total Scans</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="total-findings">-</div>
+            <div class="stat-label">Total Findings</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="critical-count">-</div>
+            <div class="stat-label">Critical</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="high-count">-</div>
+            <div class="stat-label">High</div>
+        </div>
+    </div>
+
+    <!-- Current Scan Progress -->
+    <div class="card" id="progress-card" style="display:none;">
+        <h2>⏳ Scan In Progress</h2>
+        <div id="progress-info"></div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+        </div>
+        <div id="progress-details"></div>
+    </div>
+
+    <!-- Recent Scans -->
+    <div class="card">
+        <h2>📋 Recent Scans</h2>
+        <div id="scan-history">
+            <p class="muted">Loading scan history...</p>
+        </div>
+    </div>
+
+    <!-- Recent Reports -->
+    <div class="card">
+        <h2>📄 Latest Reports</h2>
+        <div id="recent-reports">
+            <p class="muted">Loading reports...</p>
+        </div>
+    </div>
+</main>
+
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>

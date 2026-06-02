@@ -1,0 +1,59 @@
+{
+  "targets": [
+    {
+      "id": "example",
+      "name": "Example",
+      "url": "https://example.com",
+      "enabled": true,
+      "auth": {
+        "method": "none",
+        "username": "",
+        "password": "",
+        "token": "",
+        "login_url": "",
+        "login_selectors": {}
+      },
+      "issues": {
+        "url": "",
+        "auth_required": false
+      },
+      "scope": {
+        "include_paths": [
+          "*"
+        ],
+        "exclude_paths": [],
+        "max_depth": 2,
+        "rate_limit_rps": 5,
+        "timeout": "10s",
+        "slow_threshold_ms": 500
+      },
+      "tests": {
+        "recon": true,
+        "discovery": true,
+        "auth": true,
+        "authz": true,
+        "injection": true,
+        "logic": true,
+        "client_side": true,
+        "infra": true,
+        "ddos": true,
+        "fuzz": true
+      },
+      "schedule": {
+        "interval": "",
+        "cron": "0 2 * * *"
+      }
+    }
+  ],
+  "agent": {
+    "headless": true,
+    "auto_download_chrome": true,
+    "user_agent": "RedTeamAgent/2.0",
+    "max_iterations": 0,
+    "proxy": ""
+  },
+  "dashboard": {
+    "host": "0.0.0.0",
+    "port": 5555
+  }
+}
